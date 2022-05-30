@@ -20,6 +20,8 @@ TODO: Image + brief summary
 
 Below you can find a quick-start example on the ZINC dataset, see `./experiments/train_zinc.py` for more details.
 
+<details><summary>click to see the example:</summary>
+
 ```python
 import torch
 from torch_geometric import datasets
@@ -62,6 +64,7 @@ for data in train_loader:
     output = model(data) # batch_size x 1
     break
 ```
+</details>
 
 ## Installation
 
