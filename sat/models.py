@@ -15,21 +15,21 @@ class GraphTransformerEncoder(nn.TransformerEncoder):
 
         for mod in self.layers:
             output = mod(output, edge_index, complete_edge_index,
-                    edge_attr=edge_attr, degree=degree,
-                    subgraph_node_index=subgraph_node_index,
-                    subgraph_edge_index=subgraph_edge_index,
-                    subgraph_indicator_index=subgraph_indicator_index, 
-                    subgraph_edge_attr=subgraph_edge_attr,
-                    ptr=ptr,
-                    return_attn=return_attn
-                    )
+                edge_attr=edge_attr, degree=degree,
+                subgraph_node_index=subgraph_node_index,
+                subgraph_edge_index=subgraph_edge_index,
+                subgraph_indicator_index=subgraph_indicator_index, 
+                subgraph_edge_attr=subgraph_edge_attr,
+                ptr=ptr,
+                return_attn=return_attn
+            )
         if self.norm is not None:
             output = self.norm(output)
         return output
 
 
 class GraphTransformer(nn.Module):
-    def __init__(self, in_size, num_class, d_model, num_heads,
+    def __init__(self, in_size, num_class, d_model, num_heads=8,
                  dim_feedforward=512, dropout=0.0, num_layers=4,
                  batch_norm=False, abs_pe=False, abs_pe_dim=0,
                  gnn_type="graph", se="gnn", use_edge_attr=False, num_edge_features=4,
