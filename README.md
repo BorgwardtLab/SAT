@@ -10,9 +10,10 @@ The repository implements the Structure-Aware Transformer (SAT) in Pytorch Geome
 
 ## Citation
 
+Please use the following to cite our work:
 
 ```bibtex
-@InProceedings:{Chen22a,
+@InProceedings{Chen22a,
 	author = {Dexiong Chen and Leslie O'Bray and Karsten Borgwardt},
 	title = {Structure-Aware Transformer for Graph Representation Learning},
 	year = {2022},
