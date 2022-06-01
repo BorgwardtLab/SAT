@@ -10,6 +10,18 @@ The repository implements the Structure-Aware Transformer (SAT) in Pytorch Geome
 
 ## Citation
 
+
+```bibtex
+@InProceedings:{Chen22a,
+	author = {Dexiong Chen and Leslie O'Bray and Karsten Borgwardt},
+	title = {Structure-Aware Transformer for Graph Representation Learning},
+	year = {2022},
+	booktitle = {Proceedings of the 39th International Conference on Machine Learning~(ICML)},
+	series = {Proceedings of Machine Learning Research}
+}
+```
+
+
 TODO
 
 ## A short description about the SAT attention mechanism
@@ -91,7 +103,7 @@ Datasets will be downloaded via Pytorch geometric and OGB package.
 
 ## Train SAT on graph and node prediction datasets
 
-All our experimental scripts are in the folder `experiments`. So to start with, run `cd experiments`. The hyperparameters used below are selected as optimal
+All our experimental scripts are in the folder `experiments`. So to start with, after having run `source s`, run `cd experiments`. The hyperparameters used below are selected as optimal
 
 #### Graph regression on ZINC dataset
 
