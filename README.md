@@ -22,13 +22,12 @@ The repository implements the Structure-Aware Transformer (SAT) in Pytorch Geome
 ```
 
 
-TODO
 
 ## A short description about the SAT attention mechanism
 
 ![Overview figure](Overview.png)
 
-We first extract the $k$-hop subgraphs centered at each node (here, $k=1$) and use a structure extractor to compute updated node representations. The structure extractor can, for example, be any GNN. Then, the updated node embeddings  are used to compute the query ($\Q$) and key ($\K$) matrices.
+We first extract the $k$-hop subgraphs centered at each node (here, $k=1$) and use a structure extractor to compute structure-aware node representations. The structure extractor can, for example, be any GNN. Then, the updated node embeddings  are used to compute the query ($\Q$) and key ($\K$) matrices.
 
 #### A quick-start example
 
