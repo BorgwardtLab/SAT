@@ -99,7 +99,6 @@ Once you have activated the environment and installed all dependencies, run:
 ```bash
 source s
 ```
-TODO: use setup.py instead of source?
 
 Datasets will be downloaded via Pytorch geometric and OGB package.
 
@@ -145,7 +144,6 @@ python train_ppa.py --gnn-type gcn --use-edge-attr
 python train_code2.py --gnn-type gcn --use-edge-attr
 ```
 
-TODO: include pretrained models for CODE2
 
 
 [1]: https://arxiv.org/abs/2202.03036
