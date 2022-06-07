@@ -14,9 +14,22 @@ import torch.nn.functional as F
 class Attention(gnn.MessagePassing):
     """Multi-head Structure-Aware attention using PyG interface
     accept Batch data given by PyG
+
+    Args:
+    ----------
+    embed_dim (int):        the embeding dimension
+    num_heads (int):        number of attention heads (default: 8)
+    dropout (float):        dropout value (default: 0.0)
+    bias (bool):            whether layers have an additive bias (default: False)
+    symmetric (bool):       whether K=Q in dot-product attention (default: False)
+    gnn_type (str):         GNN type to use in structure extractor. (see gnn_layers.py for options)
+    se (str):               type of structure extractor ("gnn", "khopgnn")
+    k_hop (int):            number of base GNN layers or the K hop size for khopgnn structure extractor (default=2).
     """
-    def __init__(self, embed_dim, num_heads=8, dropout=0., bias=False, symmetric=False,
-                 gnn_type="gcn", se="gnn", k_hop=2, **kwargs):
+
+    def __init__(self, embed_dim, num_heads=8, dropout=0., bias=False,
+        symmetric=False, gnn_type="gcn", se="gnn", k_hop=2, **kwargs):
+
         super().__init__(node_dim=0, aggr='add')
         self.embed_dim = embed_dim
         self.bias = bias
@@ -35,7 +48,6 @@ class Attention(gnn.MessagePassing):
         else:
             self.structure_extractor = StructureExtractor(embed_dim, gnn_type=gnn_type,
                                                           num_layers=k_hop, **kwargs)
-        
         self.attend = nn.Softmax(dim=-1)
 
         self.symmetric = symmetric
@@ -61,7 +73,10 @@ class Attention(gnn.MessagePassing):
             nn.init.constant_(self.to_qk.bias, 0.)
             nn.init.constant_(self.to_v.bias, 0.)
 
-    def forward(self, x, edge_index, complete_edge_index,
+    def forward(self,
+            x,
+            edge_index,
+            complete_edge_index,
             subgraph_node_index=None,
             subgraph_edge_index=None,
             subgraph_indicator_index=None,
@@ -70,23 +85,36 @@ class Attention(gnn.MessagePassing):
             ptr=None,
             return_attn=False):
         """
-        x: N x D
-        edge_index: 2 x L
+        Compute attention layer. 
+
+        Args:
+        ----------
+        x:                          input node features
+        edge_index:                 edge index from the graph
+        complete_edge_index:        edge index from fully connected graph
+        subgraph_node_index:        documents the node index in the k-hop subgraphs
+        subgraph_edge_index:        edge index of the extracted subgraphs 
+        subgraph_indicator_index:   indices to indicate to which subgraph corresponds to which node
+        subgraph_edge_attr:         edge attributes of the extracted k-hop subgraphs
+        edge_attr:                  edge attributes
+        return_attn:                return attention (default: False)
+
         """
         # Compute value matrix
+
         v = self.to_v(x)
 
-        if self.se == 'khopgnn':
+        # Compute structure-aware node embeddings 
+        if self.se == 'khopgnn': # k-subgraph SAT
             x_struct = self.khop_structure_extractor(
-                x=x, 
+                x=x,
                 edge_index=edge_index,
                 subgraph_edge_index=subgraph_edge_index,
                 subgraph_indicator_index=subgraph_indicator_index,
                 subgraph_node_index=subgraph_node_index,
                 subgraph_edge_attr=subgraph_edge_attr,
             )
-        else:
-            # Extract subgraph representations at each node
+        else: # k-subtree SAT
             x_struct = self.structure_extractor(x, edge_index, edge_attr)
 
 
@@ -96,7 +124,7 @@ class Attention(gnn.MessagePassing):
             qk = (qk, qk)
         else:
             qk = self.to_qk(x_struct).chunk(2, dim=-1)
-        #
+        
         # Compute complete self-attention
         attn = None
 
@@ -107,8 +135,8 @@ class Attention(gnn.MessagePassing):
                 attn = self._attn
                 self._attn = None
                 attn = torch.sparse_coo_tensor(
-                    complete_edge_index, 
-                    attn, 
+                    complete_edge_index,
+                    attn,
                 ).to_dense().transpose(0, 1)
 
             out = rearrange(out, 'n h d -> n (h d)')
@@ -117,9 +145,8 @@ class Attention(gnn.MessagePassing):
         return self.out_proj(out), attn
 
     def message(self, v_j, qk_j, qk_i, edge_attr, index, ptr, size_i, return_attn):
-        """Self-attention operation
-        compute the dot-product attention
-        """
+        """Self-attention operation compute the dot-product attention """
+
         qk_i = rearrange(qk_i, 'n (h d) -> n h d', h=self.num_heads)
         qk_j = rearrange(qk_j, 'n (h d) -> n h d', h=self.num_heads)
         v_j = rearrange(v_j, 'n (h d) -> n h d', h=self.num_heads)
@@ -134,6 +161,8 @@ class Attention(gnn.MessagePassing):
         return v_j * attn.unsqueeze(-1)
 
     def self_attn(self, qk, v, ptr, return_attn=False):
+        """ Self attention which can return the attn """ 
+
         qk, mask = pad_batch(qk, ptr, return_mask=True)
         k, q = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.num_heads), qk)
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
@@ -158,8 +187,21 @@ class Attention(gnn.MessagePassing):
 
 
 class StructureExtractor(nn.Module):
+    r""" K-subtree structure extractor. Computes the structure-aware node embeddings using the
+    k-hop subtree centered around each node.
+
+    Args:
+    ----------
+    embed_dim (int):        the embeding dimension
+    gnn_type (str):         GNN type to use in structure extractor. (gcn, gin, pna, etc)
+    num_layers (int):       number of GNN layers
+    batch_norm (bool):      apply batch normalization or not
+    concat (bool):          whether to concatenate the initial edge features
+    khopgnn (bool):         whether to use the subgraph instead of subtree
+    """
+
     def __init__(self, embed_dim, gnn_type="gcn", num_layers=3,
-            batch_norm=True, concat=True, khopgnn=False, **kwargs):
+                 batch_norm=True, concat=True, khopgnn=False, **kwargs):
         super().__init__()
         self.num_layers = num_layers
         self.khopgnn = khopgnn
@@ -214,45 +256,50 @@ class StructureExtractor(nn.Module):
 
 
 class KHopStructureExtractor(nn.Module):
-    def __init__(self, embed_dim, gnn_type="gcn", num_layers=3,
-            batch_norm=True, concat=True, khopgnn=False, **kwargs):
+    r""" K-subgraph structure extractor. Extracts a k-hop subgraph centered around
+    each node and uses a GNN on each subgraph to compute updated structure-aware
+    embeddings.
+
+    Args:
+    ----------
+    embed_dim (int):        the embeding dimension
+    gnn_type (str):         GNN type to use in structure extractor. (gcn, gin, pna, etc)
+    num_layers (int):       number of GNN layers
+    concat (bool):          whether to concatenate the initial edge features
+    khopgnn (bool):         whether to use the subgraph instead of subtree (True)
+    """
+    def __init__(self, embed_dim, gnn_type="gcn", num_layers=3, batch_norm=True,
+            concat=True, khopgnn=True, **kwargs):
         super().__init__()
         self.num_layers = num_layers
         self.khopgnn = khopgnn
 
         self.batch_norm = batch_norm
-        
+
         self.structure_extractor = StructureExtractor(
-            embed_dim, 
+            embed_dim,
             gnn_type=gnn_type,
             num_layers=num_layers,
             concat=False,
-            khopgnn=True, 
+            khopgnn=True,
             **kwargs
         )
-        
+
         if batch_norm:
             self.bn = nn.BatchNorm1d(2 * embed_dim)
 
         self.out_proj = nn.Linear(2 * embed_dim, embed_dim)
 
-    def forward(
-            self, 
-            x, 
-            edge_index, 
-            subgraph_edge_index, 
-            edge_attr=None,
-            subgraph_indicator_index=None, 
-            subgraph_node_index=None,
-            subgraph_edge_attr=None,
-        ):
+    def forward(self, x, edge_index, subgraph_edge_index, edge_attr=None,
+            subgraph_indicator_index=None, subgraph_node_index=None,
+            subgraph_edge_attr=None):
 
         x_struct = self.structure_extractor(
             x=x[subgraph_node_index],
             edge_index=subgraph_edge_index,
             edge_attr=subgraph_edge_attr,
-            subgraph_indicator_index=subgraph_indicator_index, 
-            agg="sum", 
+            subgraph_indicator_index=subgraph_indicator_index,
+            agg="sum",
         )
         x_struct = torch.cat([x, x_struct], dim=-1)
         if self.batch_norm:
@@ -266,22 +313,23 @@ class TransformerEncoderLayer(nn.TransformerEncoderLayer):
     r"""Structure-Aware Transformer layer, made up of structure-aware self-attention and feed-forward network.
 
     Args:
-        d_model (int): the number of expected features in the input (required).
-        nhead (int): the number of heads in the multiheadattention models (default=8).
+    ----------
+        d_model (int):      the number of expected features in the input (required).
+        nhead (int):        the number of heads in the multiheadattention models (default=8).
         dim_feedforward (int): the dimension of the feedforward network model (default=512).
-        dropout: the dropout value (default=0.1).
-        activation: the activation function of the intermediate layer, can be a string
+        dropout:            the dropout value (default=0.1).
+        activation:         the activation function of the intermediate layer, can be a string
             ("relu" or "gelu") or a unary callable (default: relu).
-        batch_norm: use batch normalization instead of layer normalization (default: True).
-        pre_norm: pre-normalization or post-normalization (default=False).
-        gnn_type: base GNN model to extract subgraph representations.
-        One can implememnt customized GNN in gnn_layers.py (default: gcn).
-        se: structure extractor to use, either gnn or khopgnn (default: gnn).
-        k_hop: the number of base GNN layers or the K hop size for khopgnn structure extractor (default=2).
+        batch_norm:         use batch normalization instead of layer normalization (default: True).
+        pre_norm:           pre-normalization or post-normalization (default=False).
+        gnn_type:           base GNN model to extract subgraph representations.
+                            One can implememnt customized GNN in gnn_layers.py (default: gcn).
+        se:                 structure extractor to use, either gnn or khopgnn (default: gnn).
+        k_hop:              the number of base GNN layers or the K hop size for khopgnn structure extractor (default=2).
     """
     def __init__(self, d_model, nhead=8, dim_feedforward=512, dropout=0.1,
-                 activation="relu", batch_norm=True, pre_norm=False,
-                 gnn_type="gcn", se="gnn", k_hop=2, **kwargs):
+                activation="relu", batch_norm=True, pre_norm=False,
+                gnn_type="gcn", se="gnn", k_hop=2, **kwargs):
         super().__init__(d_model, nhead, dim_feedforward, dropout, activation)
 
         self.self_attn = Attention(d_model, nhead, dropout=dropout,
@@ -304,8 +352,8 @@ class TransformerEncoderLayer(nn.TransformerEncoderLayer):
             x = self.norm1(x)
 
         x2, attn = self.self_attn(
-            x, 
-            edge_index, 
+            x,
+            edge_index,
             complete_edge_index,
             edge_attr=edge_attr,
             subgraph_node_index=subgraph_node_index,
