@@ -1,8 +1,10 @@
 # Structure-Aware Transformer
 
+__Updates: We have added the script for [model visualization](#model-visualization) (Figure 4 in our paper)!__
+
 The repository implements the Structure-Aware Transformer (SAT) in Pytorch Geometric described in the following paper
 
->Dexiong Chen*, Leslie O'Bray*, and Karsten Borgwardt
+>Dexiong Chen*, Leslie O'Bray*, and Karsten Borgwardt.
 [Structure-Aware Transformer for Graph Representation Learning][1]. ICML 2022.
 <br/>*Equal contribution
 
@@ -23,10 +25,9 @@ Please use the following to cite our work:
 ```
 
 
-
 ## A short description about the SAT attention mechanism
 
-![Overview figure](Overview.png)
+![Overview figure](images/Overview.png)
 
 We first extract the $k$-hop subgraphs centered at each node (here, $k=1$) and use a structure extractor to compute structure-aware node representations. The structure extractor can, for example, be any GNN. Then, the updated node embeddings  are used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices.
 
@@ -144,6 +145,17 @@ python train_ppa.py --gnn-type gcn --use-edge-attr
 python train_code2.py --gnn-type gcn --use-edge-attr
 ```
 
+## Model visualization
+
+We showcase here how to visualize the attention weights of the [CLS] node learned by SAT and vanilla Transformer with the random walk positional encoding. We have provided the pre-trained models on the Mutagenecity dataset. To visualize the pre-trained models, you need to install the [`networkx`](https://networkx.org/) package, then run:
+
+```bash
+python model_visu.py --graph-idx 2003
+```
+
+This will generate the following image, the same as the Figure 4 in our paper:
+
+![Model_interpretation](images/graph2003.png)
 
 
 [1]: https://arxiv.org/abs/2202.03036
