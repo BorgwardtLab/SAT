@@ -147,7 +147,7 @@ python train_code2.py --gnn-type gcn --use-edge-attr
 
 ## Model visualization
 
-We showcase here how to visualize the attention weights of the [CLS] node learned by SAT and vanilla Transformer with the random walk positional encoding. We have provided the pre-trained models on the Mutagenecity dataset. To visualize the pre-trained models, you need to install the [`networkx`](https://networkx.org/) package, then run:
+We showcase here how to visualize the attention weights of the [CLS] node learned by SAT and vanilla Transformer with the random walk positional encoding. We have provided the pre-trained models on the Mutagenecity dataset. To visualize the pre-trained models, you need to install the [`networkx`](https://networkx.org/) and `matplotlib` packages, then run:
 
 ```bash
 python model_visu.py --graph-idx 2003
