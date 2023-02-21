@@ -31,7 +31,7 @@ Please use the following to cite our work:
 
 ![SAT vs Transformer](images/sat_vs_transformer.png)
 
-We show the updated SAT architecture compared with the vanilla transformer architecture above. We make the self-attention calculation in each transformer layer structure-aware by leveraging structure-aware node embeddings. We generate these embeddings using a structure extractor on the $k$-hop subgraphs centered at each node of interest. The structure extractor can, for example, be an arbitrary GNN. Then, the updated node embeddings are used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices. We provide example structure extractors in the next figure.
+The SAT architecture compared with the vanilla transformer architecture is shown above. We make the self-attention calculation in each transformer layer *structure-aware* by leveraging structure-aware node embeddings. We generate these embeddings using a structure extractor (for example, any GNN) on the $k$-hop subgraphs centered at each node of interest. Then, the updated node embeddings are used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices. We provide example structure extractors in the next figure.
 
 ### Example structure extractors
 
