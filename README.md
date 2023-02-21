@@ -25,11 +25,15 @@ Please use the following to cite our work:
 ```
 
 
-## A short description about the SAT attention mechanism
+## A short description of SAT
 
-![Overview figure](images/Overview.png)
+![SAT vs Transformer](images/sat_vs_transformer.png)
 
-We first extract the $k$-hop subgraphs centered at each node (here, $k=1$) and use a structure extractor to compute structure-aware node representations. The structure extractor can, for example, be any GNN. Then, the updated node embeddings  are used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices.
+We show the updated SAT architecture compared with the vanilla transformer architecture above. We make the self-attention calculation in each transformer layer structure-aware by leveraging structure-aware node embeddings. We generate these embeddings using a structure extractor on the $k$-hop subgraphs centered at each node of interest. The structure extractor can, for example, be an arbitrary GNN. Then, the updated node embeddings are used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices. We provide example structure extractors in the next figure.
+
+![Overview figure](images/structure_extractor.png)
+
+The figure above shows the two example structure extractors used in our paper ($k$-subtree and $k$-subgraph). Structure-aware node representations are generated in the $k$-subtree GNN extractor by using the $k$-hop subtree centered at each node (here, $k=1$) and using a GNN to generate updated node representations. The explicit extraction of the subtree as an initial step is not strictly necessary, as a GNN by nature will use the $k$-hop subtree and generate updated node embeddings using the subtree information. For the $k$-subgraph GNN extractor, we first extract the $k$-hop subgraph centered at each node, and then use a GNN on each subgraph to generate node representations using the full subgraph information. The updated node embeddings are then used to compute the query ($\mathbf{Q}$) and key ($\mathbf{K}$) matrices shown in the first figure.
 
 #### A quick-start example
 
